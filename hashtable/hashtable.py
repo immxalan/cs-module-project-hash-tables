@@ -35,7 +35,11 @@ class HashTable:
 
     def __init__(self, capacity):
         # Your code here
-        self.capacity = MIN_CAPACITY
+        self.min_capacity = MIN_CAPACITY
+        if capacity > self.min_capacity:
+            self.capacity = capacity
+        else:
+            self.capacity = self.min_capacity
         self.storage = [None] * self.capacity
         self.count = 0
 
@@ -51,7 +55,7 @@ class HashTable:
         Implement this.
         """
         # Your code here
-
+        return self.capacity
 
     def get_load_factor(self):
         """
@@ -60,7 +64,7 @@ class HashTable:
         Implement this.
         """
         # Your code here
-
+        return self.count/self.capacity
 
     def fnv1(self, key):
         """
@@ -111,8 +115,26 @@ class HashTable:
         #         if kvp[0] == key:
         #             kvp[1] = value
         #             break
-        i = self.hash_index(key)
-        self.storage[i] = value
+
+        # i = self.hash_index(key)
+        # self.storage[i] = value
+        currIndex = self.hash_index(key)
+        if(self.storage[currIndex] == None):
+            self.storage[currIndex] = HashTableEntry(key, value)
+            self.count += 1
+        else:
+            curr = self.storage[currIndex]
+            while curr.next != None and curr.key != key:
+                curr = curr.next
+            if curr.key == key:
+                curr.value = value
+            else:
+                new_entry = HashTableEntry(key, value)
+                new_entry.next = self.storage[currIndex]
+                self.storage[currIndex] = new_entry
+                self.count += 1
+        if self.get_load_factor() > .7:
+            self.resize(self.capacity * 2)
 
     def delete(self, key):
         """
@@ -123,12 +145,41 @@ class HashTable:
         Implement this.
         """
         # Your code here
-        i = self.hash_index(key)
-        if self.storage[i] == None:
-            print('There is nothing at this index')
+        # i = self.hash_index(key)
+        # if self.storage[i] == None:
+        #     print('There is nothing at this index')
+        # else:
+        #     self.storage[i] = None
+        currIndex = self.hash_index(key)
+        if self.storage[currIndex].key == key:
+            if self.storage[currIndex].next == None:
+                self.storage[currIndex] = None
+                self.count -= 1
+            else:
+                new_head = self.storage[currIndex].next
+                self.storage[currIndex].next = None
+                self.storage[currIndex] = new_head
+                self.count -= 1
         else:
-            self.storage[i] = None
-
+            if self.storage[currIndex] == None:
+                return None
+            else:
+                curr = self.storage[currIndex]
+                prev = None
+                while curr.next is not None and curr.key != key:
+                    prev = curr
+                    curr = curr.next
+                if curr.key == key:
+                    prev.next = curr.next
+                    self.count -= 1
+                    return curr.value
+                else:
+                    return None
+        if self.get_load_factor() < .2:
+            if self.capacity/2 > 8:
+                self.resize(self.capacity//2)
+            elif self.capacity > 8:
+                self.resize(8)
 
 
     def get(self, key):
@@ -140,22 +191,26 @@ class HashTable:
         Implement this.
         """
         # Your code here
-        i = self.hash_index(key)
-        node = self.storage[i]
-        if node is not None:
-            return node
-        else:
-            print("No node found")
-            return None
-        # index = self.hash_index(key)
-        # if self.array[index] is None:
-        #     raise KeyError()
+        # i = self.hash_index(key)
+        # node = self.storage[i]
+        # if node is not None:
+        #     return node
         # else:
-        #     print('Nothing')
-        #     for kvp in self.array[index]:
-        #         if kvp[0] == key:
-        #             return kvp[1]
-        #     raise KeyError()
+        #     print("No node found")
+        #     return None
+        index = self.hash_index(key)
+        if self.storage[index] is not None and self.storage[index].key == key:
+            return self.storage[index].value
+        elif self.storage[index] is None:
+            return None
+        else:
+            curr = self.storage[index]
+            while curr.next != None and curr.key != key:
+                curr = self.storage[index].next
+            if curr == None:
+                return None
+            else:
+                return curr.value
 
 
     def resize(self, new_capacity):
@@ -166,7 +221,13 @@ class HashTable:
         Implement this.
         """
         # Your code here
-
+        old_table = self.storage[:]
+        self.capacity = new_capacity
+        self.storage = [None] * new_capacity
+        for i in range(len(old_table)):
+            if old_table[i] is not None:
+                curr = old_table[i]
+                self.put(curr.key, curr.value)
 
 
 if __name__ == "__main__":
